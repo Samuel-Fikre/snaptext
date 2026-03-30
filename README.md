@@ -40,24 +40,39 @@ Verifies if the current layout matches the snapshot within a tolerance threshold
 
 ## Testing & Determinism
 
-SnapText uses Vitest for smoke testing layout stability. Because text layout relies on engine-specific math, we use a 0.02 epsilon tolerance to account for minor browser/environment drift.
+SnapText uses Playwright for browser-based smoke testing. Because text layout relies on browser-specific Canvas APIs and DOM measurements, tests run in a real Chromium browser (headless in CI, visible locally if needed).
 
 ### Local Testing
 
 ```bash
 pnpm install
+pnpm build
+pnpm exec playwright install chromium
 pnpm test
 ```
 
-**Note:** This package depends on `canvas` for DOM-free testing. If you encounter installation issues on Windows, ensure you have the necessary build tools or use WSL (Ubuntu) which mirrors the CI environment perfectly.
+For interactive debugging:
+```bash
+pnpm test:ui
+```
 
-### Windows Canvas Headache
+### Windows Contributors
 
-The `canvas` package has native dependencies. On Windows:
-- **Option 1:** Install [windows-build-tools](https://github.com/felixrieseberg/windows-build-tools) and Python
-- **Option 2:** Use WSL (recommended) — `wsl`, then run `pnpm install` and `pnpm test`
+Playwright works natively on Windows — no WSL needed. Just install and run:
+```powershell
+pnpm install
+pnpm build
+pnpm exec playwright install chromium
+pnpm test
+```
 
-Contributors: If you're on Windows, we recommend running tests in WSL or relying on the CI.
+### Test Tiers
+
+Our smoke tests verify four critical properties:
+1. **Identity**: Same config returns `isStable: true`
+2. **Width Sensitivity**: 1px change triggers failure
+3. **Content Sensitivity**: Text changes are caught with correct error reason
+4. **Epsilon Tolerance**: Small differences within 0.02 tolerance pass
 
 ## License
 

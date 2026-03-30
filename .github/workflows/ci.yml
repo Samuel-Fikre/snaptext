@@ -25,10 +25,13 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
-          pnpm install
+        run: pnpm install
 
-      - name: Run Tests
-        run: pnpm vitest run
+      - name: Build
+        run: pnpm build
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install chromium
+
+      - name: Run Playwright browser tests
+        run: pnpm exec playwright test

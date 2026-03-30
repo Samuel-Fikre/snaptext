@@ -1,7 +1,7 @@
 {
-  "name": "snap-text",
+  "name": "snaptext",
   "version": "0.0.1",
-  "description": "",
+  "description": "Deterministic text layout snapshots",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

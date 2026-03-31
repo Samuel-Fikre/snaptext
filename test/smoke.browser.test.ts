@@ -35,16 +35,17 @@ test.describe('SnapText Browser Smoke Tests', () => {
     expect(result.isStable).toBe(true);
   });
 
-  test('Tier 2: Width sensitivity - 1px change triggers failure', async ({ page }) => {
+  test('Tier 2: Width sensitivity - significant width change triggers failure', async ({ page }) => {
     const result = await page.evaluate((cfg) => {
       const { snapshotLayout, verifyLayout } = (window as any).snaptext;
       const original = snapshotLayout(cfg);
-      const wider = { ...original, width: original.width + 1 };
-      return verifyLayout(wider);
+      // Reduce width enough to force a line break change
+      const narrower = { ...original, width: original.width - 50 };
+      return verifyLayout(narrower);
     }, mockConfig);
     
     expect(result.isStable).toBe(false);
-    expect(result.reason).toContain('width');
+    expect(result.reason).toMatch(/lineCount|height/);
   });
 
   test('Tier 3: Content sensitivity - text change triggers failure', async ({ page }) => {

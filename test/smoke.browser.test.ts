@@ -9,21 +9,13 @@ const mockConfig = {
 
 test.describe('SnapText Browser Smoke Tests', () => {
   test.beforeEach(async ({ page }) => {
-    // Load the built module and expose to window
-    await page.goto('about:blank');
+    // Set up minimal HTML page
+    await page.setContent('<div id="root"></div>');
     
-    // Read the built module and wrap it to expose exports
-    const fs = await import('fs');
-    const moduleContent = fs.readFileSync('./dist/index.mjs', 'utf-8');
+    // Load browser-ready SnapText IIFE bundle
+    await page.addScriptTag({ path: './dist/index.iife.js' });
     
-    // Create a wrapper that exposes the exports to window
-    const wrappedContent = `
-      ${moduleContent}
-      // Re-export to window for test access
-      window.snaptext = { snapshotLayout, verifyLayout };
-    `;
-    
-    await page.addScriptTag({ content: wrappedContent });
+    // Wait until snaptext is available on window
     await page.waitForFunction(() => (window as any).snaptext !== undefined);
   });
 

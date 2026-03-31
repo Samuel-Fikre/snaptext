@@ -10,9 +10,10 @@ export default {
     name: 'snaptext',
     inlineDynamicImports: true,
   },
+  external: [], // ensure no external deps
   plugins: [
-    nodeResolve({ browser: true }),
-    commonjs(),
+    nodeResolve({ browser: true, preferBuiltins: false }),
+    commonjs({ include: 'node_modules/**' }),
     typescript({ tsconfig: './tsconfig.json' }),
   ]
 };

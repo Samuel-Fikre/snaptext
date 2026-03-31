@@ -39,8 +39,8 @@ test.describe('SnapText Browser Smoke Tests', () => {
     const result = await page.evaluate((cfg) => {
       const { snapshotLayout, verifyLayout } = (window as any).snaptext;
       const original = snapshotLayout(cfg);
-      // Reduce width enough to force a line break change
-      const narrower = { ...original, width: original.width - 50 };
+      // Force layout change with extreme width reduction
+      const narrower = { ...original, width: 100 };
       return verifyLayout(narrower);
     }, mockConfig);
     
@@ -60,13 +60,27 @@ test.describe('SnapText Browser Smoke Tests', () => {
     expect(result.reason).toContain('text');
   });
 
-  test('Tier 4: Epsilon tolerance - small differences within tolerance pass', async ({ page }) => {
+  test('Tier 4: Epsilon tolerance - small drift within tolerance passes', async ({ page }) => {
     const result = await page.evaluate((cfg) => {
       const { snapshotLayout, verifyLayout } = (window as any).snaptext;
       const original = snapshotLayout(cfg);
-      return verifyLayout(original, 0.05);
+      // Simulate small cross-environment drift (0.01px height difference)
+      const drifted = { ...original, height: original.height + 0.01 };
+      return verifyLayout(drifted, 0.05);
     }, mockConfig);
     
     expect(result.isStable).toBe(true);
+  });
+
+  test('Tier 4b: Epsilon boundary - large drift beyond tolerance fails', async ({ page }) => {
+    const result = await page.evaluate((cfg) => {
+      const { snapshotLayout, verifyLayout } = (window as any).snaptext;
+      const original = snapshotLayout(cfg);
+      // Simulate large drift (0.1px) beyond 0.05 tolerance
+      const drifted = { ...original, height: original.height + 0.1 };
+      return verifyLayout(drifted, 0.05);
+    }, mockConfig);
+    
+    expect(result.isStable).toBe(false);
   });
 });

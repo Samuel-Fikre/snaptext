@@ -8,15 +8,28 @@ const mockConfig = {
 };
 
 test.describe('SnapText Browser Smoke Tests', () => {
-  test('Tier 1: Identity check - same config returns isStable: true', async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
+    // Load the built module and expose to window
     await page.goto('about:blank');
     
-    // Load the built module
-    const scriptContent = await import('fs').then(fs => fs.readFileSync('./dist/index.mjs', 'utf-8'));
-    await page.addScriptTag({ content: scriptContent });
+    // Read the built module and wrap it to expose exports
+    const fs = await import('fs');
+    const moduleContent = fs.readFileSync('./dist/index.mjs', 'utf-8');
     
+    // Create a wrapper that exposes the exports to window
+    const wrappedContent = `
+      ${moduleContent}
+      // Re-export to window for test access
+      window.snaptext = { snapshotLayout, verifyLayout };
+    `;
+    
+    await page.addScriptTag({ content: wrappedContent });
+    await page.waitForFunction(() => (window as any).snaptext !== undefined);
+  });
+
+  test('Tier 1: Identity check - same config returns isStable: true', async ({ page }) => {
     const result = await page.evaluate((cfg) => {
-      const { snapshotLayout, verifyLayout } = (window as any).snaptext || (window as any);
+      const { snapshotLayout, verifyLayout } = (window as any).snaptext;
       const original = snapshotLayout(cfg);
       return verifyLayout(original);
     }, mockConfig);
@@ -25,13 +38,8 @@ test.describe('SnapText Browser Smoke Tests', () => {
   });
 
   test('Tier 2: Width sensitivity - 1px change triggers failure', async ({ page }) => {
-    await page.goto('about:blank');
-    
-    const scriptContent = await import('fs').then(fs => fs.readFileSync('./dist/index.mjs', 'utf-8'));
-    await page.addScriptTag({ content: scriptContent });
-    
     const result = await page.evaluate((cfg) => {
-      const { snapshotLayout, verifyLayout } = (window as any).snaptext || (window as any);
+      const { snapshotLayout, verifyLayout } = (window as any).snaptext;
       const original = snapshotLayout(cfg);
       const wider = { ...original, width: original.width + 1 };
       return verifyLayout(wider);
@@ -42,13 +50,8 @@ test.describe('SnapText Browser Smoke Tests', () => {
   });
 
   test('Tier 3: Content sensitivity - text change triggers failure', async ({ page }) => {
-    await page.goto('about:blank');
-    
-    const scriptContent = await import('fs').then(fs => fs.readFileSync('./dist/index.mjs', 'utf-8'));
-    await page.addScriptTag({ content: scriptContent });
-    
     const result = await page.evaluate((cfg) => {
-      const { snapshotLayout, verifyLayout } = (window as any).snaptext || (window as any);
+      const { snapshotLayout, verifyLayout } = (window as any).snaptext;
       const original = snapshotLayout(cfg);
       const altered = { ...original, text: original.text + '!' };
       return verifyLayout(altered);
@@ -59,13 +62,8 @@ test.describe('SnapText Browser Smoke Tests', () => {
   });
 
   test('Tier 4: Epsilon tolerance - small differences within tolerance pass', async ({ page }) => {
-    await page.goto('about:blank');
-    
-    const scriptContent = await import('fs').then(fs => fs.readFileSync('./dist/index.mjs', 'utf-8'));
-    await page.addScriptTag({ content: scriptContent });
-    
     const result = await page.evaluate((cfg) => {
-      const { snapshotLayout, verifyLayout } = (window as any).snaptext || (window as any);
+      const { snapshotLayout, verifyLayout } = (window as any).snaptext;
       const original = snapshotLayout(cfg);
       return verifyLayout(original, 0.05);
     }, mockConfig);

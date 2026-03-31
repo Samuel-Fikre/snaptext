@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import path from 'path';
 
 const mockConfig = {
   text: 'The quick brown fox jumps over the lazy dog 🚀',
@@ -9,11 +10,16 @@ const mockConfig = {
 
 test.describe('SnapText Browser Smoke Tests', () => {
   test.beforeEach(async ({ page }) => {
+    // Add error logging for debugging
+    page.on('console', msg => console.log('BROWSER:', msg.text()));
+    page.on('pageerror', err => console.log('ERROR:', err.message));
+    
     // Set up minimal HTML page
     await page.setContent('<div id="root"></div>');
     
-    // Load browser-ready SnapText IIFE bundle
-    await page.addScriptTag({ path: './dist/index.iife.js' });
+    // Load browser-ready SnapText IIFE bundle using absolute path
+    const bundlePath = path.resolve(process.cwd(), 'dist/index.iife.js');
+    await page.addScriptTag({ path: bundlePath });
     
     // Wait until snaptext is available on window
     await page.waitForFunction(() => (window as any).snaptext !== undefined);

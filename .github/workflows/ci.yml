@@ -28,9 +28,7 @@ jobs:
         run: pnpm install
 
       - name: Build
-        run: |
-          pnpm build
-          pnpm build:iife
+        run: pnpm build
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install chromium

@@ -8,9 +8,10 @@ export default {
     file: 'dist/index.iife.js',
     format: 'iife',
     name: 'snaptext',
+    inlineDynamicImports: true,
   },
   plugins: [
-    nodeResolve(),
+    nodeResolve({ browser: true }),
     commonjs(),
     typescript({ tsconfig: './tsconfig.json' }),
   ]

@@ -5,8 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsup",
-    "build:iife": "rollup -c rollup.config.mjs",
+    "build": "rollup -c rollup.config.mjs",
     "dev": "tsup --watch",
     "test": "playwright test",
     "test:ui": "playwright test --ui"

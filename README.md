@@ -1,6 +1,6 @@
 # SnapText
 
-Deterministic text layout snapshots for [@chenglou/pretext](https://github.com/chenglou/pretext).
+Stable text layout snapshots for `@chenglou/pretext`.
 
 ## Installation
 
@@ -13,7 +13,6 @@ pnpm add snaptext
 ```typescript
 import { snapshotLayout, verifyLayout } from 'snaptext';
 
-// Create a layout snapshot
 const config = {
   text: 'The quick brown fox jumps over the lazy dog 🚀',
   font: '16px Inter, sans-serif',
@@ -21,26 +20,78 @@ const config = {
   lineHeight: 24,
 };
 
+// Capture how text actually renders
 const snapshot = snapshotLayout(config);
 
-// Later, verify the layout is stable
+// Later, verify layout stability
 const result = verifyLayout(snapshot);
-console.log(result.isStable ? 'Layout is stable' : `Unstable: ${result.reason}`);
+
+if (!result.isStable) {
+  console.log('Layout drift detected:', result.reason);
+}
 ```
+
+## Why SnapText?
+
+Text layout is not fully deterministic across environments.
+
+Small differences in:
+
+* browsers (Chrome vs Safari)
+* OS font rendering
+* font versions
+
+can cause subtle UI shifts (line breaks, wrapping, height).
+
+SnapText captures **rendered layout output**, not just inputs, and verifies it later.
+
+This lets you detect:
+
+* unexpected line wrapping changes
+* layout drift across environments
+* rendering inconsistencies in CI
+
+## What It Actually Checks
+
+SnapText compares **rendered layout structure**, including:
+
+* line count
+* line text (per line)
+* line widths
+* total height
+
+It does **not** validate raw config changes directly.
+A change only fails if it **affects the rendered layout**.
 
 ## API
 
-### `snapshotLayout(config: LayoutConfig): LayoutSnapshot`
+### `snapshotLayout(config: LayoutConfig): LayoutSnapshot` 
 
-Creates a deterministic snapshot of text layout including line breaks, heights, and widths.
+Creates a snapshot of rendered text layout.
 
-### `verifyLayout(snapshot: LayoutSnapshot, tolerance = 0.02): VerifyResult`
+### `verifyLayout(snapshot: LayoutSnapshot, tolerance = 0.02): VerifyResult` 
 
-Verifies if the current layout matches the snapshot within a tolerance threshold.
+Checks if current layout matches the snapshot within a tolerance.
 
-## Testing & Determinism
+* Returns `{ isStable: true }` if layout matches
+* Returns `{ isStable: false, reason }` if drift is detected
 
-SnapText uses Playwright for browser-based smoke testing. Because text layout relies on browser-specific Canvas APIs and DOM measurements, tests run in a real Chromium browser (headless in CI, visible locally if needed).
+## Tolerance (Epsilon)
+
+Layout measurements can differ slightly across environments.
+
+SnapText uses a tolerance (default `0.02`) to allow small differences:
+
+* ≤ tolerance → considered stable
+* > tolerance → considered drift
+
+This prevents false positives from sub-pixel rendering differences.
+
+## Testing
+
+SnapText uses Playwright to run tests in a real browser environment.
+
+This avoids issues with missing Canvas/DOM APIs in Node.
 
 ### Local Testing
 
@@ -51,14 +102,16 @@ pnpm exec playwright install chromium
 pnpm test
 ```
 
-For interactive debugging:
+### Interactive Debugging
+
 ```bash
 pnpm test:ui
 ```
 
-### Windows Contributors
+### Windows
 
-Playwright works natively on Windows — no WSL needed. Just install and run:
+Works natively. No WSL required.
+
 ```powershell
 pnpm install
 pnpm build
@@ -66,13 +119,27 @@ pnpm exec playwright install chromium
 pnpm test
 ```
 
-### Test Tiers
+## Test Coverage
 
-Our smoke tests verify four critical properties:
-1. **Identity**: Same config returns `isStable: true`
-2. **Width Sensitivity**: 1px change triggers failure
-3. **Content Sensitivity**: Text changes are caught with correct error reason
-4. **Epsilon Tolerance**: Small differences within 0.02 tolerance pass
+Smoke tests verify:
+
+1. **Identity**
+   Same snapshot → stable
+
+2. **Layout Sensitivity**
+   Significant width changes that alter wrapping → detected
+
+3. **Content Sensitivity**
+   Text changes → detected with reason
+
+4. **Epsilon Tolerance**
+   Small cross-environment drift → allowed
+
+## Limitations
+
+* Depends on font availability in the runtime environment
+* Layout can change if fonts differ between environments
+* Reason messages are best-effort and may vary slightly
 
 ## License
 

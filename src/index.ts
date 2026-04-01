@@ -17,6 +17,8 @@ export function snapshotLayout(config: LayoutConfig): LayoutSnapshot {
     lines: detailed.lines.map((l) => ({
       text: l.text,
       width: l.width,
+      start: l.start,
+      end: l.end,
     })),
   };
 }

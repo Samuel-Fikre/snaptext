@@ -31,34 +31,55 @@ export function verifyLayout(
 
   const current = snapshotLayout({ text, font, width, lineHeight });
 
-  // height check
+  // 1. Height check (Fastest fail)
   if (Math.abs(current.height - snapshot.height) > tolerance) {
-    return { isStable: false, reason: "height mismatch" };
+    return {
+      isStable: false,
+      reason: `height mismatch: expected ${snapshot.height}, got ${current.height}`,
+    };
   }
 
-  // line count check
+  // 2. Line count check
   if (current.lineCount !== snapshot.lineCount) {
-    return { isStable: false, reason: "lineCount mismatch" };
+    return {
+      isStable: false,
+      reason: `lineCount mismatch: expected ${snapshot.lineCount}, got ${current.lineCount}`,
+    };
   }
 
-  // line length check (critical)
+  // 3. Array Structure check
   if (current.lines.length !== snapshot.lines.length) {
-    return { isStable: false, reason: "line length mismatch" };
+    return {
+      isStable: false,
+      reason: "internal line array length mismatch",
+    };
   }
 
-  // line-by-line comparison
+  // 4. Per-line content and width comparison
   for (let i = 0; i < snapshot.lines.length; i++) {
     const s = snapshot.lines[i];
     const c = current.lines[i];
 
+    // Check if the word-wrap moved text to a different line
     if (s.text !== c.text) {
-      return { isStable: false, reason: `text mismatch at line ${i}` };
+      return {
+        isStable: false,
+        reason: `text mismatch at line ${i}: "${s.text}" vs "${c.text}"`,
+      };
     }
 
+    // Check if the pixel-width drifted beyond tolerance
     if (Math.abs(s.width - c.width) > tolerance) {
-      return { isStable: false, reason: `width mismatch at line ${i}` };
+      return {
+        isStable: false,
+        reason: `width mismatch at line ${i}: ${s.width}px vs ${c.width}px`,
+      };
     }
+    
+    // NOTE: We skip the s.start/s.end check to avoid 
+    // coupling to Pretext's internal segmentation logic.
   }
 
+  // Layout is stable within tolerance
   return { isStable: true };
 }

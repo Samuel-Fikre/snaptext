@@ -20,11 +20,11 @@ const config = {
   lineHeight: 24,
 };
 
-// Capture how text actually renders
-const snapshot = snapshotLayout(config);
+// Capture how text actually renders (waits for fonts to load)
+const snapshot = await snapshotLayout(config);
 
 // Later, verify layout stability
-const result = verifyLayout(snapshot);
+const result = await verifyLayout(snapshot);
 
 if (!result.isStable) {
   console.log('Layout drift detected:', result.reason);
@@ -65,11 +65,13 @@ A change only fails if it **affects the rendered layout**.
 
 ## API
 
-### `snapshotLayout(config: LayoutConfig): LayoutSnapshot` 
+### `snapshotLayout(config: LayoutConfig): Promise<LayoutSnapshot>` 
 
 Creates a snapshot of rendered text layout.
+Waits for fonts to be ready in browser environments before measuring.
+Normalizes text to NFC to ensure consistent Unicode representation.
 
-### `verifyLayout(snapshot: LayoutSnapshot, tolerance = 0.02): VerifyResult` 
+### `verifyLayout(snapshot: LayoutSnapshot, tolerance = 0.02): Promise<VerifyResult>` 
 
 Checks if current layout matches the snapshot within a tolerance.
 
@@ -134,6 +136,12 @@ Smoke tests verify:
 
 4. **Epsilon Tolerance**
    Small cross-environment drift → allowed
+
+5. **Snapshot Corruption**
+   Modified snapshot lines → detected
+
+6. **Unicode Normalization**
+   NFC and NFD forms of same text → treated as identical
 
 ## Limitations
 

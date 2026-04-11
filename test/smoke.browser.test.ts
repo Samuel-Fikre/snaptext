@@ -19,24 +19,24 @@ test.describe('SnapText Browser Smoke Tests', () => {
   });
 
   test('Tier 1: Identity check - same config returns isStable: true', async ({ page }) => {
-    const result = await page.evaluate((cfg) => {
+    const result = await page.evaluate(async (cfg) => {
       const { snapshotLayout, verifyLayout } = (window as any).snaptext;
-      const original = snapshotLayout(cfg);
-      return verifyLayout(original);
+      const original = await snapshotLayout(cfg);
+      return await verifyLayout(original);
     }, mockConfig);
 
     expect(result.isStable).toBe(true);
   });
 
   test('Tier 2: Width sensitivity - layout change triggers failure', async ({ page }) => {
-    const result = await page.evaluate((cfg) => {
+    const result = await page.evaluate(async (cfg) => {
       const { snapshotLayout, verifyLayout } = (window as any).snaptext;
-      const original = snapshotLayout(cfg);
+      const original = await snapshotLayout(cfg);
 
       // force layout change (guaranteed smaller width)
       const narrower = { ...original, width: 100 };
 
-      return verifyLayout(narrower);
+      return await verifyLayout(narrower);
     }, mockConfig);
 
     expect(result.isStable).toBe(false);
@@ -44,14 +44,14 @@ test.describe('SnapText Browser Smoke Tests', () => {
   });
 
   test('Tier 3: Content sensitivity - text change triggers failure', async ({ page }) => {
-    const result = await page.evaluate((cfg) => {
+    const result = await page.evaluate(async (cfg) => {
       const { snapshotLayout, verifyLayout } = (window as any).snaptext;
-      const original = snapshotLayout(cfg);
+      const original = await snapshotLayout(cfg);
 
       // isolate text mutation only
       const altered = { ...original, text: original.text + '!' };
 
-      return verifyLayout(altered);
+      return await verifyLayout(altered);
     }, mockConfig);
 
     expect(result.isStable).toBe(false);
@@ -59,37 +59,37 @@ test.describe('SnapText Browser Smoke Tests', () => {
   });
 
   test('Tier 4: Epsilon tolerance - small drift within tolerance passes', async ({ page }) => {
-    const result = await page.evaluate((cfg) => {
+    const result = await page.evaluate(async (cfg) => {
       const { snapshotLayout, verifyLayout } = (window as any).snaptext;
-      const original = snapshotLayout(cfg);
+      const original = await snapshotLayout(cfg);
 
       // simulate tiny cross-env drift
       const drifted = { ...original, height: original.height + 0.01 };
 
-      return verifyLayout(drifted, 0.05);
+      return await verifyLayout(drifted, 0.05);
     }, mockConfig);
 
     expect(result.isStable).toBe(true);
   });
 
   test('Tier 4b: Epsilon boundary - large drift beyond tolerance fails', async ({ page }) => {
-    const result = await page.evaluate((cfg) => {
+    const result = await page.evaluate(async (cfg) => {
       const { snapshotLayout, verifyLayout } = (window as any).snaptext;
-      const original = snapshotLayout(cfg);
+      const original = await snapshotLayout(cfg);
 
       // simulate larger drift
       const drifted = { ...original, height: original.height + 0.1 };
 
-      return verifyLayout(drifted, 0.05);
+      return await verifyLayout(drifted, 0.05);
     }, mockConfig);
 
     expect(result.isStable).toBe(false);
   });
 
   test('Tier 5: Snapshot corruption - modifying snapshot breaks verification', async ({ page }) => {
-    const result = await page.evaluate((cfg) => {
+    const result = await page.evaluate(async (cfg) => {
       const { snapshotLayout, verifyLayout } = (window as any).snaptext;
-      const original = snapshotLayout(cfg);
+      const original = await snapshotLayout(cfg);
 
       // simulate corrupted stored snapshot
       const corrupted = {
@@ -99,7 +99,7 @@ test.describe('SnapText Browser Smoke Tests', () => {
         ),
       };
 
-      return verifyLayout(corrupted);
+      return await verifyLayout(corrupted);
     }, mockConfig);
 
     expect(result.isStable).toBe(false);
@@ -115,7 +115,7 @@ test.describe('SnapText Determinism - Unicode Normalization', () => {
   });
 
   test('Tier 6: Unicode Normalization - NFC and NFD should be treated as identical', async ({ page }) => {
-    const result = await page.evaluate(() => {
+    const result = await page.evaluate(async () => {
       const { snapshotLayout, verifyLayout } = (window as any).snaptext;
 
       // "é" in Decomposed form (2 characters in memory)
@@ -131,13 +131,13 @@ test.describe('SnapText Determinism - Unicode Normalization', () => {
       };
 
       // 1. Snapshot with NFD
-      const snapshot = snapshotLayout(configNFD);
+      const snapshot = await snapshotLayout(configNFD);
 
       // 2. Verify using NFC (This would fail without .normalize("NFC")!)
       const crossCheck = { ...snapshot, text: textNFC };
       
       return {
-        verifyResult: verifyLayout(crossCheck),
+        verifyResult: await verifyLayout(crossCheck),
         originalTextLength: textNFD.length,
         normalizedTextLength: snapshot.text.length
       };

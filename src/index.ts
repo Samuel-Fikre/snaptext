@@ -1,7 +1,12 @@
 import { prepareWithSegments, layoutWithLines } from "@chenglou/pretext";
 import { LayoutConfig, LayoutSnapshot, VerifyResult } from "./types";
 
-export function snapshotLayout(config: LayoutConfig): LayoutSnapshot {
+export async function snapshotLayout(config: LayoutConfig): Promise<LayoutSnapshot> {
+  // Wait for fonts to be ready in browser environments
+  if (typeof document !== "undefined" && "fonts" in document) {
+    await document.fonts.ready;
+  }
+
   const normalizedText = config.text.normalize("NFC");
   const { font, width, lineHeight } = config;
 
@@ -24,13 +29,13 @@ export function snapshotLayout(config: LayoutConfig): LayoutSnapshot {
   };
 }
 
-export function verifyLayout(
+export async function verifyLayout(
   snapshot: LayoutSnapshot,
   tolerance = 0.02
-): VerifyResult {
+): Promise<VerifyResult> {
   const { text, font, width, lineHeight } = snapshot;
 
-  const current = snapshotLayout({ text, font, width, lineHeight });
+  const current = await snapshotLayout({ text, font, width, lineHeight });
 
   // 1. Height check (Fastest fail)
   if (Math.abs(current.height - snapshot.height) > tolerance) {

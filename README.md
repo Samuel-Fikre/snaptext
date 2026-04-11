@@ -1,6 +1,12 @@
 # SnapText
 
-Stable text layout snapshots for `@chenglou/pretext`.
+Snapshot and compare text layout for `@chenglou/pretext` output.
+
+## Mental Model
+
+- **Snapshot** = frozen layout output of text rendering
+- **Verify** = recompute + compare
+- **Failure** = layout changed between builds/environments
 
 ## Installation
 
@@ -30,45 +36,34 @@ const current = await snapshotLayoutAsync(config);
 const result = verifyLayout(reference, current);
 
 if (!result.isStable) {
-  console.log('Layout drift detected:', result.reason);
+  console.log('Layout drift detected:', result.type, result.reason);
 }
 ```
 
 **Advanced: Manual font control**
 
-If you need fine-grained control over font loading (e.g., using a custom font loader):
+If you need fine-grained control over font loading:
 
 ```typescript
 import { waitForFonts, snapshotLayout } from 'snaptext';
 
-// Wait for fonts once at the start of your tests
 await waitForFonts();
-
-// Then use the pure synchronous core for maximum performance
 const snapshot = snapshotLayout(config);
 ```
 
-**Note:** `snapshotLayout` is the pure synchronous core. Use `snapshotLayoutAsync` for convenience, or `waitForFonts` + `snapshotLayout` for manual control.
-
 ## Why SnapText?
 
-Text layout is not fully deterministic across environments.
+Text layout can drift across environments.
 
-Small differences in:
+Small differences in browsers, OS font rendering, and font versions can cause subtle UI shifts (line breaks, wrapping, height).
 
-* browsers (Chrome vs Safari)
-* OS font rendering
-* font versions
-
-can cause subtle UI shifts (line breaks, wrapping, height).
-
-SnapText captures **rendered layout output**, not just inputs, and verifies it later.
-
-This lets you detect:
+SnapText captures and compares rendered layout output to detect:
 
 * unexpected line wrapping changes
 * layout drift across environments
 * rendering inconsistencies in CI
+
+**Note:** SnapText turns Pretext's layout output into a testable snapshot diff system.
 
 ## What It Actually Checks
 
@@ -84,48 +79,39 @@ A change only fails if it **affects the rendered layout**.
 
 ## API
 
-### `snapshotLayout(config: LayoutConfig): LayoutSnapshot` 
+### `snapshotLayoutAsync(config: LayoutConfig): Promise<LayoutSnapshot>`
 
-Pure synchronous core. Creates a snapshot of rendered text layout without waiting for fonts.
+Async API for browser environments. Waits for fonts to be ready before capturing layout.
 Normalizes text to NFC to ensure consistent Unicode representation.
 
-### `waitForFonts(): Promise<void>`
-
-Utility to wait for fonts to be ready in browser environments. Call this once before `snapshotLayout` if you need to ensure fonts are loaded.
-
-### `snapshotLayoutAsync(config: LayoutConfig): Promise<LayoutSnapshot>` 
-
-Async wrapper for browser environments. Waits for fonts to be ready before calling `snapshotLayout`.
-Use this for convenience in browsers to ensure accurate measurements.
-
-### `verifyLayout(reference: LayoutSnapshot, current: LayoutSnapshot, tolerance = 0.02): VerifyResult` 
+### `verifyLayout(reference: LayoutSnapshot, current: LayoutSnapshot, tolerance = 0.02): VerifyResult`
 
 Compares two snapshots (reference vs current) within a tolerance.
 
-Returns a discriminated union — no string parsing needed:
+Returns a discriminated union — use `result.type` for programmatic handling:
 
 ```typescript
 // Stable
 { isStable: true }
 
-// Unstable — machine-readable metadata included
+// Unstable — use `type` for programmatic handling
 {
   isStable: false,
-  reason: 'text mismatch at line 0: "hello" vs "hello!"',
-  type: 'text',              // "text" | "width" | "height" | "lineCount"
-  expected: 'hello',         // string | number
-  actual: 'hello!',          // string | number
+  reason: 'text mismatch at line 0: "hello" vs "hello!"',  // human-readable
+  type: 'text',              // programmatic contract: "text" | "width" | "height" | "lineCount"
+  expected: 'hello',
+  actual: 'hello!',
   line: 0,                   // only present for per-line errors
 }
 ```
 
-Use `result.type` to programmatically handle different failure modes without parsing `reason`.
+**Note:** `reason` is human-readable only. Use `type` for programmatic error handling.
 
 ## Tolerance (Epsilon)
 
 Layout measurements can differ slightly across environments.
 
-SnapText uses a tolerance (default `0.02`) to allow small differences:
+SnapText uses a tolerance (default `0.02`) for numeric layout metrics (width/height):
 
 * ≤ tolerance → considered stable
 * > tolerance → considered drift
@@ -134,12 +120,6 @@ This prevents false positives from sub-pixel rendering differences.
 
 ## Testing
 
-SnapText uses Playwright to run tests in a real browser environment.
-
-This avoids issues with missing Canvas/DOM APIs in Node.
-
-### Local Testing
-
 ```bash
 pnpm install
 pnpm build
@@ -147,22 +127,7 @@ pnpm exec playwright install chromium
 pnpm test
 ```
 
-### Interactive Debugging
-
-```bash
-pnpm test:ui
-```
-
-### Windows
-
-Works natively. No WSL required.
-
-```powershell
-pnpm install
-pnpm build
-pnpm exec playwright install chromium
-pnpm test
-```
+See [Playwright docs](https://playwright.dev) for advanced options.
 
 ## Test Coverage
 
@@ -190,6 +155,7 @@ Smoke tests verify:
 
 * Depends on font availability in the runtime environment
 * Layout can change if fonts differ between environments
+* Snapshots may break if the underlying layout engine (Pretext) version changes
 * Reason messages are best-effort and may vary slightly
 
 ## License

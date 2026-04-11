@@ -1,8 +1,7 @@
 import { prepareWithSegments, layoutWithLines } from "@chenglou/pretext";
 import { LayoutConfig, LayoutSnapshot, VerifyResult, SnapTextFontApi } from "./types";
 
-export async function snapshotLayout(config: LayoutConfig): Promise<LayoutSnapshot> {
-
+export function snapshotLayout(config: LayoutConfig): LayoutSnapshot {
   const normalizedText = config.text.normalize("NFC");
   const { font, width, lineHeight } = config;
 
@@ -24,11 +23,6 @@ export async function snapshotLayout(config: LayoutConfig): Promise<LayoutSnapsh
     }
   }
 
-  // Wait for fonts to be ready in browser environments
-  if (typeof document !== "undefined" && "fonts" in document) {
-    await document.fonts.ready;
-  }
-
   const prepared = prepareWithSegments(normalizedText, font);
   const detailed = layoutWithLines(prepared, width, lineHeight);
 
@@ -48,14 +42,19 @@ export async function snapshotLayout(config: LayoutConfig): Promise<LayoutSnapsh
   };
 }
 
-export async function verifyLayout(
+export async function snapshotLayoutAsync(config: LayoutConfig): Promise<LayoutSnapshot> {
+  // Wait for fonts to be ready in browser environments
+  if (typeof document !== "undefined" && "fonts" in document) {
+    await document.fonts.ready;
+  }
+  return snapshotLayout(config);
+}
+
+export function verifyLayout(
   snapshot: LayoutSnapshot,
+  current: LayoutSnapshot,
   tolerance = 0.02
-): Promise<VerifyResult> {
-  const { text, font, width, lineHeight } = snapshot;
-
-  const current = await snapshotLayout({ text, font, width, lineHeight });
-
+): VerifyResult {
   // 1. Height check (Fastest fail)
   if (Math.abs(current.height - snapshot.height) > tolerance) {
     return {

@@ -11,7 +11,7 @@ pnpm add snaptext
 ## Usage
 
 ```typescript
-import { snapshotLayout, verifyLayout } from 'snaptext';
+import { snapshotLayoutAsync, verifyLayout } from 'snaptext';
 
 const config = {
   text: 'The quick brown fox jumps over the lazy dog 🚀',
@@ -20,16 +20,21 @@ const config = {
   lineHeight: 24,
 };
 
-// Capture how text actually renders (waits for fonts to load)
-const snapshot = await snapshotLayout(config);
+// Capture reference snapshot (waits for fonts to load in browser)
+const reference = await snapshotLayoutAsync(config);
 
-// Later, verify layout stability
-const result = await verifyLayout(snapshot);
+// Later, capture current state
+const current = await snapshotLayoutAsync(config);
+
+// Compare them
+const result = verifyLayout(reference, current);
 
 if (!result.isStable) {
   console.log('Layout drift detected:', result.reason);
 }
 ```
+
+**Note:** `snapshotLayout` is the pure synchronous core. Use `snapshotLayoutAsync` in browser environments to ensure fonts are loaded before measuring.
 
 ## Why SnapText?
 
@@ -65,15 +70,19 @@ A change only fails if it **affects the rendered layout**.
 
 ## API
 
-### `snapshotLayout(config: LayoutConfig): Promise<LayoutSnapshot>` 
+### `snapshotLayout(config: LayoutConfig): LayoutSnapshot` 
 
-Creates a snapshot of rendered text layout.
-Waits for fonts to be ready in browser environments before measuring.
+Pure synchronous core. Creates a snapshot of rendered text layout without waiting for fonts.
 Normalizes text to NFC to ensure consistent Unicode representation.
 
-### `verifyLayout(snapshot: LayoutSnapshot, tolerance = 0.02): Promise<VerifyResult>` 
+### `snapshotLayoutAsync(config: LayoutConfig): Promise<LayoutSnapshot>` 
 
-Checks if current layout matches the snapshot within a tolerance.
+Async wrapper for browser environments. Waits for fonts to be ready before calling `snapshotLayout`.
+Use this in browsers to ensure accurate measurements.
+
+### `verifyLayout(reference: LayoutSnapshot, current: LayoutSnapshot, tolerance = 0.02): VerifyResult` 
+
+Compares two snapshots (reference vs current) within a tolerance.
 
 Returns a discriminated union — no string parsing needed:
 

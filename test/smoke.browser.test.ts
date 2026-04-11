@@ -20,9 +20,10 @@ test.describe('SnapText Browser Smoke Tests', () => {
 
   test('Tier 1: Identity check - same config returns isStable: true', async ({ page }) => {
     const result = await page.evaluate(async (cfg) => {
-      const { snapshotLayout, verifyLayout } = (window as any).snaptext;
-      const original = await snapshotLayout(cfg);
-      return await verifyLayout(original);
+      const { snapshotLayoutAsync, verifyLayout } = (window as any).snaptext;
+      const original = await snapshotLayoutAsync(cfg);
+      const current = await snapshotLayoutAsync(cfg);
+      return verifyLayout(original, current);
     }, mockConfig);
 
     expect(result.isStable).toBe(true);
@@ -30,13 +31,14 @@ test.describe('SnapText Browser Smoke Tests', () => {
 
   test('Tier 2: Width sensitivity - layout change triggers failure', async ({ page }) => {
     const result = await page.evaluate(async (cfg) => {
-      const { snapshotLayout, verifyLayout } = (window as any).snaptext;
-      const original = await snapshotLayout(cfg);
+      const { snapshotLayoutAsync, verifyLayout } = (window as any).snaptext;
+      const original = await snapshotLayoutAsync(cfg);
 
       // force layout change (guaranteed smaller width)
       const narrower = { ...original, width: 100 };
+      const current = await snapshotLayoutAsync(narrower);
 
-      return await verifyLayout(narrower);
+      return verifyLayout(original, current);
     }, mockConfig);
 
     expect(result.isStable).toBe(false);
@@ -45,13 +47,14 @@ test.describe('SnapText Browser Smoke Tests', () => {
 
   test('Tier 3: Content sensitivity - text change triggers failure', async ({ page }) => {
     const result = await page.evaluate(async (cfg) => {
-      const { snapshotLayout, verifyLayout } = (window as any).snaptext;
-      const original = await snapshotLayout(cfg);
+      const { snapshotLayoutAsync, verifyLayout } = (window as any).snaptext;
+      const original = await snapshotLayoutAsync(cfg);
 
       // isolate text mutation only
       const altered = { ...original, text: original.text + '!' };
+      const current = await snapshotLayoutAsync(altered);
 
-      return await verifyLayout(altered);
+      return verifyLayout(original, current);
     }, mockConfig);
 
     expect(result.isStable).toBe(false);
@@ -60,13 +63,13 @@ test.describe('SnapText Browser Smoke Tests', () => {
 
   test('Tier 4: Epsilon tolerance - small drift within tolerance passes', async ({ page }) => {
     const result = await page.evaluate(async (cfg) => {
-      const { snapshotLayout, verifyLayout } = (window as any).snaptext;
-      const original = await snapshotLayout(cfg);
+      const { snapshotLayoutAsync, verifyLayout } = (window as any).snaptext;
+      const original = await snapshotLayoutAsync(cfg);
 
       // simulate tiny cross-env drift
       const drifted = { ...original, height: original.height + 0.01 };
 
-      return await verifyLayout(drifted, 0.05);
+      return verifyLayout(original, drifted, 0.05);
     }, mockConfig);
 
     expect(result.isStable).toBe(true);
@@ -74,13 +77,13 @@ test.describe('SnapText Browser Smoke Tests', () => {
 
   test('Tier 4b: Epsilon boundary - large drift beyond tolerance fails', async ({ page }) => {
     const result = await page.evaluate(async (cfg) => {
-      const { snapshotLayout, verifyLayout } = (window as any).snaptext;
-      const original = await snapshotLayout(cfg);
+      const { snapshotLayoutAsync, verifyLayout } = (window as any).snaptext;
+      const original = await snapshotLayoutAsync(cfg);
 
       // simulate larger drift
       const drifted = { ...original, height: original.height + 0.1 };
 
-      return await verifyLayout(drifted, 0.05);
+      return verifyLayout(original, drifted, 0.05);
     }, mockConfig);
 
     expect(result.isStable).toBe(false);
@@ -88,8 +91,8 @@ test.describe('SnapText Browser Smoke Tests', () => {
 
   test('Tier 5: Snapshot corruption - modifying snapshot breaks verification', async ({ page }) => {
     const result = await page.evaluate(async (cfg) => {
-      const { snapshotLayout, verifyLayout } = (window as any).snaptext;
-      const original = await snapshotLayout(cfg);
+      const { snapshotLayoutAsync, verifyLayout } = (window as any).snaptext;
+      const original = await snapshotLayoutAsync(cfg);
 
       // simulate corrupted stored snapshot
       const corrupted = {
@@ -99,7 +102,7 @@ test.describe('SnapText Browser Smoke Tests', () => {
         ),
       };
 
-      return await verifyLayout(corrupted);
+      return verifyLayout(corrupted, original);
     }, mockConfig);
 
     expect(result.isStable).toBe(false);
@@ -116,7 +119,7 @@ test.describe('SnapText Determinism - Unicode Normalization', () => {
 
   test('Tier 6: Unicode Normalization - NFC and NFD should be treated as identical', async ({ page }) => {
     const result = await page.evaluate(async () => {
-      const { snapshotLayout, verifyLayout } = (window as any).snaptext;
+      const { snapshotLayoutAsync, verifyLayout } = (window as any).snaptext;
 
       // "é" in Decomposed form (2 characters in memory)
       const textNFD = "\u0065\u0301"; 
@@ -131,13 +134,14 @@ test.describe('SnapText Determinism - Unicode Normalization', () => {
       };
 
       // 1. Snapshot with NFD
-      const snapshot = await snapshotLayout(configNFD);
+      const snapshot = await snapshotLayoutAsync(configNFD);
 
       // 2. Verify using NFC (This would fail without .normalize("NFC")!)
       const crossCheck = { ...snapshot, text: textNFC };
+      const current = await snapshotLayoutAsync(crossCheck);
       
       return {
-        verifyResult: await verifyLayout(crossCheck),
+        verifyResult: verifyLayout(snapshot, current),
         originalTextLength: textNFD.length,
         normalizedTextLength: snapshot.text.length
       };
@@ -168,8 +172,8 @@ test.describe('SnapText Edge Cases', () => {
     });
 
     await page.evaluate(async () => {
-      const { snapshotLayout } = (window as any).snaptext;
-      await snapshotLayout({
+      const { snapshotLayoutAsync } = (window as any).snaptext;
+      await snapshotLayoutAsync({
         text: '',
         font: '16px Arial',
         width: 100,

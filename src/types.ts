@@ -30,3 +30,8 @@ export type VerifyResult =
       actual: string | number;
       line?: number; // Only present if the error happened on a specific line
     };
+
+export interface SnapTextFontApi {
+  status: "loading" | "loaded";
+  ready: Promise<any>;
+}

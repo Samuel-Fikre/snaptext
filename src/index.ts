@@ -1,14 +1,33 @@
 import { prepareWithSegments, layoutWithLines } from "@chenglou/pretext";
-import { LayoutConfig, LayoutSnapshot, VerifyResult } from "./types";
+import { LayoutConfig, LayoutSnapshot, VerifyResult, SnapTextFontApi } from "./types";
 
 export async function snapshotLayout(config: LayoutConfig): Promise<LayoutSnapshot> {
+
+  const normalizedText = config.text.normalize("NFC");
+  const { font, width, lineHeight } = config;
+
+  if (process.env.NODE_ENV !== "production") {
+    // 1. Empty Text
+    if (!normalizedText || normalizedText.trim().length === 0) {
+      console.warn(`[SnapText] ⚠️ snapshotLayout called with empty text...`);
+    }
+    // 2. Extreme Width
+    if (width > 5000) {
+      console.warn(`[SnapText] ⚠️ Large width detected (${width}px)...`);
+    }
+    // 3. Font Loading Status
+    if (typeof document !== "undefined" && "fonts" in document) {
+      const fontsApi = (document as any).fonts as SnapTextFontApi;
+      if (fontsApi.status === "loading") {
+        console.warn(`[SnapText] ⚠️ Fonts are still in 'loading' status...`);
+      }
+    }
+  }
+
   // Wait for fonts to be ready in browser environments
   if (typeof document !== "undefined" && "fonts" in document) {
     await document.fonts.ready;
   }
-
-  const normalizedText = config.text.normalize("NFC");
-  const { font, width, lineHeight } = config;
 
   const prepared = prepareWithSegments(normalizedText, font);
   const detailed = layoutWithLines(prepared, width, lineHeight);
@@ -98,7 +117,7 @@ export async function verifyLayout(
         line: i,
       };
     }
-    
+
     // NOTE: We skip the s.start/s.end check to avoid 
     // coupling to Pretext's internal segmentation logic.
   }

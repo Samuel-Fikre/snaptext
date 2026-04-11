@@ -34,9 +34,9 @@ test.describe('SnapText Browser Smoke Tests', () => {
       const { snapshotLayoutAsync, verifyLayout } = (window as any).snaptext;
       const original = await snapshotLayoutAsync(cfg);
 
-      // force layout change (guaranteed smaller width)
-      const narrower = { ...original, width: 100 };
-      const current = await snapshotLayoutAsync(narrower);
+      // force layout change by mutating config
+      const narrowerConfig = { ...cfg, width: 100 };
+      const current = await snapshotLayoutAsync(narrowerConfig);
 
       return verifyLayout(original, current);
     }, mockConfig);
@@ -50,9 +50,9 @@ test.describe('SnapText Browser Smoke Tests', () => {
       const { snapshotLayoutAsync, verifyLayout } = (window as any).snaptext;
       const original = await snapshotLayoutAsync(cfg);
 
-      // isolate text mutation only
-      const altered = { ...original, text: original.text + '!' };
-      const current = await snapshotLayoutAsync(altered);
+      // isolate text mutation by mutating config
+      const alteredConfig = { ...cfg, text: cfg.text + '!' };
+      const current = await snapshotLayoutAsync(alteredConfig);
 
       return verifyLayout(original, current);
     }, mockConfig);
@@ -66,7 +66,7 @@ test.describe('SnapText Browser Smoke Tests', () => {
       const { snapshotLayoutAsync, verifyLayout } = (window as any).snaptext;
       const original = await snapshotLayoutAsync(cfg);
 
-      // simulate tiny cross-env drift
+      // simulate tiny cross-env drift by mutating snapshot height directly
       const drifted = { ...original, height: original.height + 0.01 };
 
       return verifyLayout(original, drifted, 0.05);
@@ -80,7 +80,7 @@ test.describe('SnapText Browser Smoke Tests', () => {
       const { snapshotLayoutAsync, verifyLayout } = (window as any).snaptext;
       const original = await snapshotLayoutAsync(cfg);
 
-      // simulate larger drift
+      // simulate larger drift by mutating snapshot height directly
       const drifted = { ...original, height: original.height + 0.1 };
 
       return verifyLayout(original, drifted, 0.05);
@@ -89,12 +89,12 @@ test.describe('SnapText Browser Smoke Tests', () => {
     expect(result.isStable).toBe(false);
   });
 
-  test('Tier 5: Snapshot corruption - modifying snapshot breaks verification', async ({ page }) => {
+  test('Tier 5: Snapshot corruption - externally modified snapshot fails verification', async ({ page }) => {
     const result = await page.evaluate(async (cfg) => {
       const { snapshotLayoutAsync, verifyLayout } = (window as any).snaptext;
       const original = await snapshotLayoutAsync(cfg);
 
-      // simulate corrupted stored snapshot
+      // simulate externally corrupted stored snapshot
       const corrupted = {
         ...original,
         lines: original.lines.map((l: { text: string }, i: number) =>
@@ -121,9 +121,9 @@ test.describe('SnapText Determinism - Unicode Normalization', () => {
     const result = await page.evaluate(() => {
       const { snapshotLayout, verifyLayout } = (window as any).snaptext;
 
-      // "é" in Decomposed form (2 characters in memory)
+      // e with acute accent in Decomposed form (2 characters in memory)
       const textNFD = "\u0065\u0301"; 
-      // "é" in Composed form (1 character in memory)
+      // e with acute accent in Composed form (1 character in memory)
       const textNFC = "\u00E9"; 
 
       const configNFD = {

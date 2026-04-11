@@ -105,3 +105,48 @@ test.describe('SnapText Browser Smoke Tests', () => {
     expect(result.isStable).toBe(false);
   });
 });
+
+test.describe('SnapText Determinism - Unicode Normalization', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setContent('<div id="root"></div>');
+    const bundlePath = path.resolve(process.cwd(), 'dist/index.iife.js');
+    await page.addScriptTag({ path: bundlePath });
+    await page.waitForFunction(() => (window as any).snaptext !== undefined);
+  });
+
+  test('Tier 6: Unicode Normalization - NFC and NFD should be treated as identical', async ({ page }) => {
+    const result = await page.evaluate(() => {
+      const { snapshotLayout, verifyLayout } = (window as any).snaptext;
+
+      // "é" in Decomposed form (2 characters in memory)
+      const textNFD = "\u0065\u0301"; 
+      // "é" in Composed form (1 character in memory)
+      const textNFC = "\u00E9"; 
+
+      const configNFD = {
+        text: textNFD,
+        font: '16px Arial',
+        width: 100,
+        lineHeight: 20
+      };
+
+      // 1. Snapshot with NFD
+      const snapshot = snapshotLayout(configNFD);
+
+      // 2. Verify using NFC (This would fail without .normalize("NFC")!)
+      const crossCheck = { ...snapshot, text: textNFC };
+      
+      return {
+        verifyResult: verifyLayout(crossCheck),
+        originalTextLength: textNFD.length,
+        normalizedTextLength: snapshot.text.length
+      };
+    });
+
+    // The test should be stable because both were normalized to NFC
+    expect(result.verifyResult.isStable).toBe(true);
+    // Double check: Original was 2 chars, but snapshot should store it as 1 char
+    expect(result.originalTextLength).toBe(2);
+    expect(result.normalizedTextLength).toBe(1);
+  });
+});

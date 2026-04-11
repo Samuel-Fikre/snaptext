@@ -2,13 +2,14 @@ import { prepareWithSegments, layoutWithLines } from "@chenglou/pretext";
 import { LayoutConfig, LayoutSnapshot, VerifyResult } from "./types";
 
 export function snapshotLayout(config: LayoutConfig): LayoutSnapshot {
-  const { text, font, width, lineHeight } = config;
+  const normalizedText = config.text.normalize("NFC");
+  const { font, width, lineHeight } = config;
 
-  const prepared = prepareWithSegments(text, font);
+  const prepared = prepareWithSegments(normalizedText, font);
   const detailed = layoutWithLines(prepared, width, lineHeight);
 
   return {
-    text,
+    text: normalizedText,
     font,
     width,
     lineHeight,

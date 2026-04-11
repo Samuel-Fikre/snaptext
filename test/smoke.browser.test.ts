@@ -117,9 +117,9 @@ test.describe('SnapText Determinism - Unicode Normalization', () => {
     await page.waitForFunction(() => (window as any).snaptext !== undefined);
   });
 
-  test('Tier 6: Unicode Normalization - NFC and NFD should be treated as identical', async ({ page }) => {
-    const result = await page.evaluate(async () => {
-      const { snapshotLayoutAsync, verifyLayout } = (window as any).snaptext;
+  test('Tier 6: Unicode Normalization - NFC and NFD produce identical layout', async ({ page }) => {
+    const result = await page.evaluate(() => {
+      const { snapshotLayout, verifyLayout } = (window as any).snaptext;
 
       // "é" in Decomposed form (2 characters in memory)
       const textNFD = "\u0065\u0301"; 
@@ -128,17 +128,21 @@ test.describe('SnapText Determinism - Unicode Normalization', () => {
 
       const configNFD = {
         text: textNFD,
+        font: '16px Arial', // System font, assumed available
+        width: 100,
+        lineHeight: 20
+      };
+
+      const configNFC = {
+        text: textNFC,
         font: '16px Arial',
         width: 100,
         lineHeight: 20
       };
 
-      // 1. Snapshot with NFD
-      const snapshot = await snapshotLayoutAsync(configNFD);
-
-      // 2. Verify using NFC (This would fail without .normalize("NFC")!)
-      const crossCheck = { ...snapshot, text: textNFC };
-      const current = await snapshotLayoutAsync(crossCheck);
+      // Test core normalization logic directly (sync)
+      const snapshot = snapshotLayout(configNFD);
+      const current = snapshotLayout(configNFC);
       
       return {
         verifyResult: verifyLayout(snapshot, current),
@@ -147,9 +151,9 @@ test.describe('SnapText Determinism - Unicode Normalization', () => {
       };
     });
 
-    // The test should be stable because both were normalized to NFC
+    // Layout should be identical after normalization
     expect(result.verifyResult.isStable).toBe(true);
-    // Double check: Original was 2 chars, but snapshot should store it as 1 char
+    // Verify normalization actually happened (2 chars → 1 char)
     expect(result.originalTextLength).toBe(2);
     expect(result.normalizedTextLength).toBe(1);
   });

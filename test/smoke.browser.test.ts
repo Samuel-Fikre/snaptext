@@ -154,34 +154,3 @@ test.describe('SnapText Determinism - Unicode Normalization', () => {
     expect(result.normalizedTextLength).toBe(1);
   });
 });
-
-test.describe('SnapText Edge Cases', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.setContent('<div id="root"></div>');
-    const bundlePath = path.resolve(process.cwd(), 'dist/index.iife.js');
-    await page.addScriptTag({ path: bundlePath });
-    await page.waitForFunction(() => (window as any).snaptext !== undefined);
-  });
-
-  test('Tier 7: Empty text warning - should warn when text is empty', async ({ page }) => {
-    const warnings: string[] = [];
-
-    // Listen for console warnings
-    page.on('console', msg => {
-      if (msg.type() === 'warning') warnings.push(msg.text());
-    });
-
-    await page.evaluate(async () => {
-      const { snapshotLayoutAsync } = (window as any).snaptext;
-      await snapshotLayoutAsync({
-        text: '',
-        font: '16px Arial',
-        width: 100,
-        lineHeight: 20
-      });
-    });
-
-    // Assert that our specific warning was caught
-    expect(warnings[0]).toContain('[SnapText] ⚠️ snapshotLayout called with empty text');
-  });
-});

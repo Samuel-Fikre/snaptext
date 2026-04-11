@@ -34,7 +34,21 @@ if (!result.isStable) {
 }
 ```
 
-**Note:** `snapshotLayout` is the pure synchronous core. Use `snapshotLayoutAsync` in browser environments to ensure fonts are loaded before measuring.
+**Advanced: Manual font control**
+
+If you need fine-grained control over font loading (e.g., using a custom font loader):
+
+```typescript
+import { waitForFonts, snapshotLayout } from 'snaptext';
+
+// Wait for fonts once at the start of your tests
+await waitForFonts();
+
+// Then use the pure synchronous core for maximum performance
+const snapshot = snapshotLayout(config);
+```
+
+**Note:** `snapshotLayout` is the pure synchronous core. Use `snapshotLayoutAsync` for convenience, or `waitForFonts` + `snapshotLayout` for manual control.
 
 ## Why SnapText?
 
@@ -75,10 +89,14 @@ A change only fails if it **affects the rendered layout**.
 Pure synchronous core. Creates a snapshot of rendered text layout without waiting for fonts.
 Normalizes text to NFC to ensure consistent Unicode representation.
 
+### `waitForFonts(): Promise<void>`
+
+Utility to wait for fonts to be ready in browser environments. Call this once before `snapshotLayout` if you need to ensure fonts are loaded.
+
 ### `snapshotLayoutAsync(config: LayoutConfig): Promise<LayoutSnapshot>` 
 
 Async wrapper for browser environments. Waits for fonts to be ready before calling `snapshotLayout`.
-Use this in browsers to ensure accurate measurements.
+Use this for convenience in browsers to ensure accurate measurements.
 
 ### `verifyLayout(reference: LayoutSnapshot, current: LayoutSnapshot, tolerance = 0.02): VerifyResult` 
 

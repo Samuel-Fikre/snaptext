@@ -1,11 +1,16 @@
 import { prepareWithSegments, layoutWithLines } from "@chenglou/pretext";
 import { LayoutConfig, LayoutSnapshot, VerifyResult, SnapTextFontApi } from "./types";
 
+// Helper to safely check for Dev mode without crashing in browsers
+const isDev = 
+  typeof process !== "undefined" && 
+  process.env?.NODE_ENV !== "production";
+
 export function snapshotLayout(config: LayoutConfig): LayoutSnapshot {
   const normalizedText = config.text.normalize("NFC");
   const { font, width, lineHeight } = config;
 
-  if (process.env.NODE_ENV !== "production") {
+  if (isDev) {
     // 1. Empty Text
     if (!normalizedText || normalizedText.trim().length === 0) {
       console.warn(`[SnapText] ⚠️ snapshotLayout called with empty text...`);
@@ -42,11 +47,18 @@ export function snapshotLayout(config: LayoutConfig): LayoutSnapshot {
   };
 }
 
-export async function snapshotLayoutAsync(config: LayoutConfig): Promise<LayoutSnapshot> {
-  // Wait for fonts to be ready in browser environments
+/**
+ * Utility to wait for fonts to be ready in browser environments.
+ * Call this once before snapshotLayout if you need to ensure fonts are loaded.
+ */
+export async function waitForFonts(): Promise<void> {
   if (typeof document !== "undefined" && "fonts" in document) {
     await document.fonts.ready;
   }
+}
+
+export async function snapshotLayoutAsync(config: LayoutConfig): Promise<LayoutSnapshot> {
+  await waitForFonts();
   return snapshotLayout(config);
 }
 

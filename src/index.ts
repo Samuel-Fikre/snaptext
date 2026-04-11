@@ -42,6 +42,9 @@ export async function verifyLayout(
     return {
       isStable: false,
       reason: `height mismatch: expected ${snapshot.height}, got ${current.height}`,
+      type: "height",
+      expected: snapshot.height,
+      actual: current.height,
     };
   }
 
@@ -50,6 +53,9 @@ export async function verifyLayout(
     return {
       isStable: false,
       reason: `lineCount mismatch: expected ${snapshot.lineCount}, got ${current.lineCount}`,
+      type: "lineCount",
+      expected: snapshot.lineCount,
+      actual: current.lineCount,
     };
   }
 
@@ -58,6 +64,9 @@ export async function verifyLayout(
     return {
       isStable: false,
       reason: "internal line array length mismatch",
+      type: "lineCount",
+      expected: snapshot.lines.length,
+      actual: current.lines.length,
     };
   }
 
@@ -71,6 +80,10 @@ export async function verifyLayout(
       return {
         isStable: false,
         reason: `text mismatch at line ${i}: "${s.text}" vs "${c.text}"`,
+        type: "text",
+        expected: s.text,
+        actual: c.text,
+        line: i,
       };
     }
 
@@ -79,6 +92,10 @@ export async function verifyLayout(
       return {
         isStable: false,
         reason: `width mismatch at line ${i}: ${s.width}px vs ${c.width}px`,
+        type: "width",
+        expected: s.width,
+        actual: c.width,
+        line: i,
       };
     }
     

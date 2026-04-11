@@ -75,8 +75,24 @@ Normalizes text to NFC to ensure consistent Unicode representation.
 
 Checks if current layout matches the snapshot within a tolerance.
 
-* Returns `{ isStable: true }` if layout matches
-* Returns `{ isStable: false, reason }` if drift is detected
+Returns a discriminated union — no string parsing needed:
+
+```typescript
+// Stable
+{ isStable: true }
+
+// Unstable — machine-readable metadata included
+{
+  isStable: false,
+  reason: 'text mismatch at line 0: "hello" vs "hello!"',
+  type: 'text',              // "text" | "width" | "height" | "lineCount"
+  expected: 'hello',         // string | number
+  actual: 'hello!',          // string | number
+  line: 0,                   // only present for per-line errors
+}
+```
+
+Use `result.type` to programmatically handle different failure modes without parsing `reason`.
 
 ## Tolerance (Epsilon)
 

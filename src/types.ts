@@ -19,7 +19,14 @@ export type LayoutSnapshot = LayoutConfig & {
 /**
  * Result of verification
  */
-export type VerifyResult = {
-  isStable: boolean;
-  reason?: string;
-};
+export type VerifyResult = 
+  | { isStable: true } 
+  | { 
+      isStable: false; 
+      reason: string;
+      // Machine-readable metadata:
+      type: "text" | "width" | "height" | "lineCount"; 
+      expected: string | number;
+      actual: string | number;
+      line?: number; // Only present if the error happened on a specific line
+    };
